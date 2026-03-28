@@ -150,12 +150,11 @@ Templates use Go's `text/template` syntax. Available fields:
 
 ---
 
-## Data
+## Future Work
 
-All data is stored locally. journl never phones home.
+- **`--file` flag** — attach files to log entries, copied into `~/.journl/attachments/`
+- **`--clip` flag** — attach clipboard contents, either raw text or screenshot images
+- **`--context` flag on `log`** — target a specific context inline without switching globally
+- **`journl undo`** — delete the last entry in the active context
+- **`journl amend`** — open the last entry in `$EDITOR` to correct or extend it
 
-| Path | Description |
-|---|---|
-| `~/.journl/config.yaml` | Config file |
-| `~/.journl/db.sqlite` | Default SQLite store |
-| `~/.journl/<date>.md` | Daily files (custom format with time-based path) |
