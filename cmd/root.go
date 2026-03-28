@@ -6,19 +6,22 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"strings"
+	"path/filepath"
 
 	"github.com/lucasmaehn/journl/config"
-	"github.com/lucasmaehn/journl/editor"
-	"github.com/lucasmaehn/journl/logstore"
 	"github.com/spf13/cobra"
 )
 
 var cfgFile string
 
 var dbPath string
+
+type App struct {
+	Config *config.Config
+}
+
+var app *App
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -30,45 +33,33 @@ examples and usage of using your application. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		skipConfigLoad := map[string]bool{
+			"init": true,
+		}
+
+		if skipConfigLoad[cmd.Name()] {
+			return nil
+		}
+
+		cfg, err := config.Load(cfgFile)
+		if err != nil {
+			if errors.Is(err, config.ErrConfigNotFound) {
+				return fmt.Errorf("Config file not found. Initialize a new, default config using `journl init` or pass the path to a valid config file using the `--config` option")
+			}
+			return err
+		}
+
+		app = &App{
+			Config: cfg,
+		}
+
+		return nil
+	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
-	Args: cobra.ArbitraryArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		stdin := getStdin()
-
-		store, err := logstore.NewSQLite(config.Get().DBPath)
-		if err != nil {
-			return fmt.Errorf("failed to initialize logstore: %w", err)
-		}
-
-		var text string
-		if len(args) == 0 {
-			reader, err := editor.Open()
-			if err != nil {
-				return err
-			}
-			t, err := io.ReadAll(reader)
-			if err != nil {
-				return err
-			}
-			text = string(t)
-		} else {
-			text = strings.Join(args, " ")
-		}
-
-		if len(strings.TrimSpace(text)) == 0 {
-			return errors.New("skipping log entry because message was empty")
-		}
-
-		fmt.Println("stdin length", len(stdin))
-		if len(stdin) > 0 {
-			text += "\n"
-			text += stdin
-		}
-
-		return store.Commit(text)
-	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -81,31 +72,10 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	defaultCfg := filepath.Join(home, ".journl", "config.yaml")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.journl/config.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	config.InitConfig(cfgFile)
-}
-
-func getStdin() string {
-	stat, _ := os.Stdin.Stat()
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		bytes, err := io.ReadAll(os.Stdin)
-		if err == nil {
-			return string(bytes)
-		}
-	}
-	return ""
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultCfg, "config file (default is $HOME/.journl/config.yaml)")
 }

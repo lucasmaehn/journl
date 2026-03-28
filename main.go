@@ -1,6 +1,5 @@
 /*
-Copyright © 2026 Lucas Mähn
-
+Copyright © 2026 LUCAS MÄHN <lucasmaehn@gmail.com>
 */
 package main
 

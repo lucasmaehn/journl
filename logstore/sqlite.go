@@ -6,9 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"path"
-	"strings"
 	"time"
 
 	"github.com/georgysavva/scany/sqlscan"
@@ -16,23 +13,17 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func NewSQLite(dbpath string) (*SQLiteLogstore, error) {
-	fmt.Println("dbpath", dbpath)
-	if strings.HasPrefix(dbpath, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to determine user's home dir: %w", err)
-		}
-		dbpath = path.Join(home, dbpath[2:])
-	}
-
-	log.Println("opening sqlite @", dbpath)
-	db, err := sql.Open("sqlite", dbpath)
+func NewSQLite(contextName string, cfg config.StoreConfig) (*SQLiteLogstore, error) {
+	log.Println("opening sqlite @", cfg.Path)
+	db, err := sql.Open("sqlite", cfg.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}
 
-	ls := &SQLiteLogstore{db: db}
+	ls := &SQLiteLogstore{
+		contextName: contextName,
+		db:          db,
+	}
 	if err := ls.init(); err != nil {
 		return nil, fmt.Errorf("failed to initialize sqlite adapter: %w", err)
 	}
@@ -41,7 +32,8 @@ func NewSQLite(dbpath string) (*SQLiteLogstore, error) {
 }
 
 type SQLiteLogstore struct {
-	db *sql.DB
+	contextName string
+	db          *sql.DB
 }
 
 type entryRow struct {
@@ -83,7 +75,7 @@ func (ls *SQLiteLogstore) Commit(text string, opts ...LogOption) error {
 INSERT INTO journal_entries (text, context)
 VALUES (?, ?)
 	`
-	_, err := ls.db.Exec(query, text, config.Get().ActiveContext)
+	_, err := ls.db.Exec(query, text, ls.contextName)
 	if err != nil {
 		return fmt.Errorf("failed to commit journal entry: %w", err)
 	}
@@ -94,7 +86,7 @@ VALUES (?, ?)
 func (ls *SQLiteLogstore) List() ([]LogEntry, error) {
 	var rows []entryRow
 	query := `SELECT created_at, text, context FROM journal_entries WHERE context=? ORDER BY created_at desc`
-	err := sqlscan.Select(context.Background(), ls.db, &rows, query, config.Get().ActiveContext)
+	err := sqlscan.Select(context.Background(), ls.db, &rows, query, ls.contextName)
 	if err != nil {
 		return nil, err
 	}

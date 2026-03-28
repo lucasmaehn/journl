@@ -4,7 +4,6 @@ Copyright © 2026 LUCAS MÄHN <lucasmaehn@gmail.com>
 package cmd
 
 import (
-	"github.com/lucasmaehn/journl/config"
 	"github.com/lucasmaehn/journl/logstore"
 	"github.com/lucasmaehn/journl/ui"
 	"github.com/spf13/cobra"
@@ -21,7 +20,12 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ls, err := logstore.NewSQLite(config.Get().DBPath)
+		ctx, err := app.Config.ActiveContext()
+		if err != nil {
+			return err
+		}
+
+		ls, err := logstore.New(ctx.Name, ctx.Store)
 		if err != nil {
 			return err
 		}

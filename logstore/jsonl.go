@@ -8,27 +8,24 @@ import (
 	"os"
 	"path"
 	"time"
+
+	"github.com/lucasmaehn/journl/config"
 )
 
-func NewJSONL() (*JSONLStore, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	filepath := path.Join(homeDir, ".journl", "default.jsonl")
-
-	if err := os.MkdirAll(path.Dir(filepath), 0o755); err != nil {
+func NewJSONL(contextName string, cfg config.StoreConfig) (*JSONLStore, error) {
+	if err := os.MkdirAll(path.Dir(cfg.Path), 0o755); err != nil {
 		return nil, err
 	}
 
 	return &JSONLStore{
-		filepath: filepath,
+		contextName: contextName,
+		filepath:    cfg.Path,
 	}, nil
 }
 
 type JSONLStore struct {
-	filepath string
+	contextName string
+	filepath    string
 }
 
 func (ls *JSONLStore) List() ([]LogEntry, error) {

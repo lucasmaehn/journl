@@ -1,96 +1,31 @@
 package config
 
-import (
-	"os"
-	"path"
-
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
-)
-
 type Config struct {
-	DBPath        string             `yaml:"db_path" mapstructure:"db_path" validate:"required"`
-	ActiveContext string             `yaml:"active_context" mapstructure:"active_context" validate:"required"`
-	Contexts      map[string]Context `yaml:"contexts" mapstructure:"contexts"`
+	CurrentContext string             `yaml:"current_context" mapstructure:"current_context"`
+	Contexts       map[string]Context `yaml:"contexts" mapstructure:"contexts"`
 }
 
 type Context struct {
-	Name        string `yaml:"name" mapstructure:"name"`
-	Description string `yaml:"description" mapstructure:"description"`
+	Name        string      `yaml:"name" mapstructure:"name"`
+	Description string      `yaml:"description" mapstructure:"description"`
+	Store       StoreConfig `yaml:"store" mapstructure:"store"`
 }
 
-var defaultConfig = Config{
-	DBPath:        "~/.journl/journl.db",
-	ActiveContext: "default",
-	Contexts: map[string]Context{
-		"default": {Name: "default", Description: "The default context"},
-	},
+type StoreConfig struct {
+	Format StoreFormat   `yaml:"format" mapstructure:"format"`
+	Path   string        `yaml:"path" mapstructure:"path"`
+	JSONL  *JSONLConfig  `yaml:"jsonl,omitempty" mapstructure:"jsonl"`
+	SQLite *SQLiteConfig `yaml:"sqlite,omitempty" mapstructure:"sqlite"`
 }
 
-var config Config
+type StoreFormat string
 
-var (
-	configDirPath  string
-	configFilePath string
+const (
+	StoreFormatJSONL  StoreFormat = "jsonl"
+	StoreFormatSQLite StoreFormat = "sqlite"
 )
 
-func init() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	configDirPath = path.Join(home, ".journl")
-	configFilePath = path.Join(configDirPath, "config.yaml")
-}
-
-func Get() Config {
-	return config
-}
-
-func InitConfig(cfgFile string) error {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		if _, err := os.Stat(configFilePath); err != nil {
-			if os.IsNotExist(err) {
-				if err := SetConfig(defaultConfig); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		}
-
-		// Search config in home directory with name ".journl" (without extension).
-		viper.AddConfigPath(configDirPath)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SetConfig(cfg Config) error {
-	bs, err := yaml.Marshal(&cfg)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(configFilePath, bs, 0o644); err != nil {
-		return err
-	}
-
-	config = cfg
-
-	return nil
-}
+type (
+	JSONLConfig  struct{}
+	SQLiteConfig struct{}
+)
