@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/georgysavva/scany/sqlscan"
@@ -14,8 +15,16 @@ import (
 )
 
 func NewSQLite(contextName string, cfg config.StoreConfig) (*SQLiteLogstore, error) {
-	log.Println("opening sqlite @", cfg.Path)
-	db, err := sql.Open("sqlite", cfg.Path)
+	path, err := resolvePath(cfg.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}

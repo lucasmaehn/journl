@@ -6,20 +6,25 @@ import (
 	"errors"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/lucasmaehn/journl/config"
 )
 
 func NewJSONL(contextName string, cfg config.StoreConfig) (*JSONLStore, error) {
-	if err := os.MkdirAll(path.Dir(cfg.Path), 0o755); err != nil {
+	path, err := resolvePath(cfg.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, err
 	}
 
 	return &JSONLStore{
 		contextName: contextName,
-		filepath:    cfg.Path,
+		filepath:    path,
 	}, nil
 }
 
