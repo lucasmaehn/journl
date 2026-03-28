@@ -16,6 +16,7 @@ type StoreConfig struct {
 	Path   string        `yaml:"path" mapstructure:"path"`
 	JSONL  *JSONLConfig  `yaml:"jsonl,omitempty" mapstructure:"jsonl"`
 	SQLite *SQLiteConfig `yaml:"sqlite,omitempty" mapstructure:"sqlite"`
+	Custom *CustomConfig `yaml:"custom,omitempty" mapstructure:"custom"`
 }
 
 type StoreFormat string
@@ -23,9 +24,13 @@ type StoreFormat string
 const (
 	StoreFormatJSONL  StoreFormat = "jsonl"
 	StoreFormatSQLite StoreFormat = "sqlite"
+	StoreFormatCustom StoreFormat = "custom"
 )
 
 type (
 	JSONLConfig  struct{}
 	SQLiteConfig struct{}
+	CustomConfig struct {
+		Template string `yaml:"template" mapstructure:"template"`
+	}
 )

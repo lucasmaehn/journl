@@ -12,6 +12,8 @@ func New(ctxName string, cfg config.StoreConfig) (LogStore, error) {
 		return NewJSONL(ctxName, cfg)
 	case config.StoreFormatSQLite:
 		return NewSQLite(ctxName, cfg)
+	case config.StoreFormatCustom:
+		return NewCustom(ctxName, cfg)
 	default:
 		return nil, fmt.Errorf("invalid StoreFormat: %q", cfg.Format)
 	}

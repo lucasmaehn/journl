@@ -45,6 +45,18 @@ func (s *StoreConfig) Validate() error {
 		if s.Path == "" {
 			return errors.New("store.path is required for sqlite")
 		}
+	case StoreFormatCustom:
+		if s.Path == "" {
+			return errors.New("store.path is required for custom")
+		}
+		if s.Custom == nil {
+			return errors.New("store.custom is required for custom")
+		}
+
+		if s.Custom.Template == "" {
+			return errors.New("store.custom.template is required for custom")
+		}
+
 	default:
 		return fmt.Errorf("invalid store format: %q", s.Format)
 	}
